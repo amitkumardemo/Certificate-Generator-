@@ -1,27 +1,29 @@
 const userName = document.getElementById("name");
+const dobInput = document.getElementById("dob");
 const submitBtn = document.getElementById("submitBtn");
 
-const { PDFDocument, rgb, degrees } = PDFLib;
+const { PDFDocument, rgb } = PDFLib;
 
-
+// Capitalize function
 const capitalize = (str, lower = false) =>
   (lower ? str.toLowerCase() : str).replace(/(?:^|\s|["'([{])+\S/g, (match) =>
     match.toUpperCase()
   );
 
 submitBtn.addEventListener("click", () => {
-  const val = capitalize(userName.value);
+  const nameVal = capitalize(userName.value);
+  const dobVal = dobInput.value.trim();
 
-  //check if the text is empty or not
-  if (val.trim() !== "" && userName.checkValidity()) {
-    // console.log(val);
-    generatePDF(val);
+  // Check if all fields are filled and valid
+  if (nameVal && dobVal && userName.checkValidity() && dobInput.checkValidity()) {
+    generatePDF(nameVal, dobVal);
   } else {
     userName.reportValidity();
+    dobInput.reportValidity();
   }
 });
 
-const generatePDF = async (name) => {
+const generatePDF = async (name, dob) => {
   const existingPdfBytes = await fetch("Techiehelp OfferLetter.pdf").then((res) =>
     res.arrayBuffer()
   );
@@ -30,45 +32,39 @@ const generatePDF = async (name) => {
   const pdfDoc = await PDFDocument.load(existingPdfBytes);
   pdfDoc.registerFontkit(fontkit);
 
-  //get font
+  // Get font
   const fontBytes = await fetch("./Sanchez-Regular.ttf").then((res) =>
     res.arrayBuffer()
   );
-
-  // Embed our custom font in the document
-  const SanChezFont = await pdfDoc.embedFont(fontBytes);
+  const sanChezFont = await pdfDoc.embedFont(fontBytes);
 
   // Get the first page of the document
   const pages = pdfDoc.getPages();
   const firstPage = pages[0];
 
-  // Draw a string of text diagonally across the first page
+  // Draw the name on the PDF
   firstPage.drawText(name, {
     x: 130,
     y: 610,
-    size: 25,
-    font: SanChezFont,
-    color: PDFLib.rgb(0, 0, 0), // Set color to black
+    size: 10,
+    font: sanChezFont,
+    color: rgb(0, 0, 0), // Set color to black
   });
-  
+
+  // Draw the DOB below the name
+  firstPage.drawText(`DOB: ${dob}`, {
+    x: 130,
+    y: 580,
+    size: 10,
+    font: sanChezFont,
+    color: rgb(0, 0, 0), // Set color to black
+  });
 
   // Serialize the PDFDocument to bytes (a Uint8Array)
   const pdfBytes = await pdfDoc.save();
-  console.log("Done creating");
+  console.log("Done creating PDF");
 
-  // this was for creating uri and showing in iframe
-
-  // const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
-  // document.getElementById("pdf").src = pdfDataUri;
-
-  var file = new File(
-    [pdfBytes],
-    "Techiehelp offerleteer.pdf",
-    {
-      type: "application/pdf;charset=utf-8",
-    }
-  );
- saveAs(file);
+  // Create and download the PDF file
+  const file = new File([pdfBytes], "Techiehelp_OfferLetter.pdf", { type: "application/pdf;charset=utf-8" });
+  saveAs(file);
 };
-
-// init();
